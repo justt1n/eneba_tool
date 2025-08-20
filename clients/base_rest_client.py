@@ -1,4 +1,4 @@
-# file: clients/base_client.py
+# file: clients/base_rest_client.py
 
 import json
 import logging
@@ -69,7 +69,7 @@ def _is_retryable_exception(retry_state: RetryCallState) -> bool:
     return False
 
 
-class BaseAPIClient(ABC):
+class BaseRestAPIClient(ABC):
     def __init__(self, base_url: str, headers: Optional[Dict[str, str]] = None):
         self._base_url = base_url
         self._client = httpx.AsyncClient(

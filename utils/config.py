@@ -17,8 +17,7 @@ class Settings(BaseSettings):
     # Đọc chuỗi JSON từ .env và chuyển thành list
     HEADER_KEY_COLUMNS_JSON: str = '["CHECK", "Product_name", "Product_pack"]'
     SLEEP_TIME: int = 5
-    BATCH_SIZE: int = 20
-    RATE_RUB_USD: float = 0.0125
+    BASE_URL: str = 'https://api-sandbox.eneba.com/graphql/'
 
     @property
     def HEADER_KEY_COLUMNS(self) -> List[str]:
