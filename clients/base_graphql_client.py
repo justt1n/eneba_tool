@@ -19,10 +19,9 @@ class BaseGraphQLClient:
         self._client = httpx.Client()
 
     def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Thực thi một query GraphQL và trả về kết quả."""
         headers = {"Content-Type": "application/json"}
+        headers.update({"X-Proxy-Secret": "embeiuquadi"})
         if self.auth_handler:
-            # Lấy header xác thực từ handler đã được "tiêm" vào
             auth_headers = self.auth_handler.get_auth_headers()
             headers.update(auth_headers)
 

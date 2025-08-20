@@ -5,6 +5,7 @@ from typing import Dict, Optional
 import httpx
 
 from models.eneba.oauth_models import AccessTokenResponse
+from utils.config import settings
 
 
 class EnebaAuthHandler:
@@ -13,11 +14,9 @@ class EnebaAuthHandler:
         auth_id: str,
         auth_secret: str,
         client_id: str,
-        sandbox: bool = True,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.base_url = "https://api-sandbox.eneba.com" if sandbox else "https://api.eneba.com"
-        self.token_url = f"{self.base_url}/oauth/token"
+        self.token_url = settings.AUTH_URL
 
         self._auth_payload = {
             "grant_type": "api_consumer",

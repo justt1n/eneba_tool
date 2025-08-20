@@ -1,28 +1,45 @@
 # eneba_client.py
 import logging
-from typing import Dict, Any
 
 from clients.base_graphql_client import BaseGraphQLClient
-from clients.impl.eneba_ import S_PRODUCTS_QUERY
+from clients.impl.eneba_query import S_PRODUCTS_QUERY
 from logic.auth import EnebaAuthHandler
+from utils.config import settings
 
 
 class EnebaClient:
 
-    def __init__(self, auth_id: str, auth_secret: str, client_id: str, sandbox: bool = True):
-        auth_handler = EnebaAuthHandler(auth_id, auth_secret, client_id, sandbox)
+    def __init__(
+            self,
+            auth_id: str,
+            auth_secret: str,
+            client_id: str,
+            sandbox: bool = True
+    ):
+        graphql_url = settings.BASE_URL
 
-        graphql_url = f"{auth_handler.base_url}/graphql/"
-
-        self._client = BaseGraphQLClient(graphql_url=graphql_url, auth_handler=auth_handler)
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info("Initializing EnebaClient for proxy...")
 
+        auth_handler = EnebaAuthHandler(
+            auth_id=auth_id,
+            auth_secret=auth_secret,
+            client_id=client_id,
+        )
+
+        self._client = BaseGraphQLClient(
+            graphql_url=graphql_url,
+            auth_handler=auth_handler
+        )
 
     def search_products(self, search: str, first: int = 10) -> SProductsGraphQLResponse:
-        """Thực thi query tìm kiếm sản phẩm."""
-        self.logger.info(f"Searching for products with phrase: '{search}'")
         variables = {"search": search, "first": first}
-        response_json = self._client.execute(query=S_PRODUCTS_QUERY, variables=variables)
+
+        response_json = self._client.execute(
+            query=S_PRODUCTS_QUERY,
+            variables=variables
+        )
+
         return SProductsGraphQLResponse.model_validate(response_json)
 
     def close(self):
