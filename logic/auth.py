@@ -4,26 +4,20 @@ from typing import Dict, Optional
 
 import httpx
 
-from models.eneba.oauth_models import AccessTokenResponse
+from models.oauth_models import AccessTokenResponse
 from utils.config import settings
 
 
 class EnebaAuthHandler:
-    def __init__(
-        self,
-        auth_id: str,
-        auth_secret: str,
-        client_id: str,
-    ):
+    def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.token_url = settings.AUTH_URL
-        self.client_id = client_id
 
         self._initial_auth_payload = {
             "grant_type": "api_consumer",
-            "client_id": client_id,
-            "id": auth_id,
-            "secret": auth_secret,
+            "client_id": settings.CLIENT_ID,
+            "id": settings.AUTH_ID,
+            "secret": settings.AUTH_SECRET,
         }
 
         self._access_token: Optional[str] = None

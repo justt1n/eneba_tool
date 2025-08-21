@@ -1,45 +1,29 @@
 # eneba_client.py
 import logging
+from typing import List
+from uuid import UUID
 
 from clients.base_graphql_client import BaseGraphQLClient
-from clients.impl.eneba_query import S_PRODUCTS_QUERY
+from clients.impl.eneba_query import S_PRODUCTS_BY_SLUGS_QUERY, S_COMPETITION_QUERY
 from logic.auth import EnebaAuthHandler
+from models.eneba_models import SProductsGraphQLResponse, SCompetitionGraphQLResponse
 from utils.config import settings
 
 
 class EnebaClient:
 
-    def __init__(
-            self,
-            auth_id: str,
-            auth_secret: str,
-            client_id: str,
-    ):
+    def __init__(self):
         graphql_url = settings.BASE_URL
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info("Initializing EnebaClient for proxy...")
 
-        auth_handler = EnebaAuthHandler(
-            auth_id=auth_id,
-            auth_secret=auth_secret,
-            client_id=client_id,
-        )
+        auth_handler = EnebaAuthHandler()
 
         self._client = BaseGraphQLClient(
             graphql_url=graphql_url,
             auth_handler=auth_handler
         )
-
-    def search_products(self, search: str, first: int = 10) -> SProductsGraphQLResponse:
-        variables = {"search": search, "first": first}
-
-        response_json = self._client.execute(
-            query=S_PRODUCTS_QUERY,
-            variables=variables
-        )
-
-        return SProductsGraphQLResponse.model_validate(response_json)
 
     def close(self):
         self._client.close()
@@ -49,3 +33,27 @@ class EnebaClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    def get_product_by_slug(self, slugs: str) -> SProductsGraphQLResponse:
+        variables = {
+            "slugs": [slugs],
+            "sort": "CREATED_AT_DESC",
+            "first": 1
+        }
+
+        response_json = self._client.execute(
+            query=S_PRODUCTS_BY_SLUGS_QUERY,
+            variables=variables
+        )
+
+        return SProductsGraphQLResponse.model_validate(response_json)
+
+    def get_competition_by_product_id(self, product_id: UUID) -> SCompetitionGraphQLResponse:
+        product_id_str = str(product_id)
+
+        variables = {
+            "productIds": product_id_str,
+        }
+
+        response_json = self._client.execute(query=S_COMPETITION_QUERY, variables=variables)
+        return SCompetitionGraphQLResponse.model_validate(response_json)

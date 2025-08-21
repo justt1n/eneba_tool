@@ -1,4 +1,5 @@
 # base_graphql_client.py
+import json
 import logging
 from typing import Any, Dict, Optional
 
@@ -38,7 +39,13 @@ class BaseGraphQLClient:
             return response_json
 
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+            error_body = e.response.text
+            try:
+                error_json = json.loads(error_body)
+                if "errors" in error_json:
+                    raise GraphQLError(error_json["errors"])
+            except json.JSONDecodeError:
+                pass
             raise GraphQLClientError(f"HTTP Error: {e.response.status_code}") from e
         except httpx.RequestError as e:
             self.logger.error(f"A network error occurred: {e}")

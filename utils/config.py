@@ -8,17 +8,18 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='settings.env', env_file_encoding='utf-8', extra='ignore')
 
-    # Google Sheets settings
     MAIN_SHEET_ID: str
     MAIN_SHEET_NAME: str
     GOOGLE_KEY_PATH: str
-    DIGI_API_KEY: str
-    SELLER_ID: int
-    # Đọc chuỗi JSON từ .env và chuyển thành list
+
     HEADER_KEY_COLUMNS_JSON: str = '["CHECK", "Product_name", "Product_pack"]'
     SLEEP_TIME: int = 5
     BASE_URL: str = 'https://sosanhsach.io.vn/eneba-api/graphql/'
     AUTH_URL: str = 'https://sosanhsach.io.vn/eneba-auth/oauth/token'
+
+    CLIENT_ID: str
+    AUTH_ID: str
+    AUTH_SECRET: str
 
     @property
     def HEADER_KEY_COLUMNS(self) -> List[str]:
