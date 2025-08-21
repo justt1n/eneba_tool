@@ -14,7 +14,6 @@ class EnebaClient:
             auth_id: str,
             auth_secret: str,
             client_id: str,
-            sandbox: bool = True
     ):
         graphql_url = settings.BASE_URL
 
