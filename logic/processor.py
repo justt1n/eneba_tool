@@ -83,14 +83,15 @@ class Processor:
                 logging.warning(f"No competition data found for product: {payload.product_name}")
                 return PayloadResult(payload=payload, log_message="No competition data found.")
             analysis_result = self.eneba_service.analyze_competition(payload, product_competition)
-            edited_price = self._calc_final_price(payload, analysis_result.price)
+            edited_price = self._calc_final_price(payload, analysis_result.competitive_price)
             if payload.min_price is not None and edited_price < payload.min_price:
                 logging.info(f"Final price ({edited_price:.3f}) is below min_price ({payload.min_price:.3f}), not updating.")
                 log_str = get_log_string(
                     mode="below_min",
                     payload=payload,
                     final_price=edited_price,
-                    analysis_result=analysis_result
+                    analysis_result=analysis_result,
+                    filtered_products=product_competition
                 )
                 return PayloadResult(
                     status=0,
@@ -102,7 +103,8 @@ class Processor:
                 mode="compare",
                 payload=payload,
                 final_price=edited_price,
-                analysis_result=analysis_result
+                analysis_result=analysis_result,
+                filtered_products=product_competition
             )
             return PayloadResult(
                 status=1,
@@ -156,14 +158,14 @@ def _analysis_log_string(
 
     sellers_below = analysis_result.sellers_below_min
     if sellers_below:
-        sellers_info = "; ".join([f"{s.seller_name} = {s.node.price:.6f}\n" for s in sellers_below[:6] if
+        sellers_info = "; ".join([f"{s.seller_name} = {s.node.price.amount:.6f}\n" for s in sellers_below[:6] if
                                   s.seller_name not in payload.fetched_black_list])
         log_parts.append(f"Seller giá nhỏ hơn min_price):\n {sellers_info}")
 
     log_parts.append("Top 4 sản phẩm:\n")
-    sorted_product = sorted(filtered_products, key=lambda item: item.get_price(), reverse=True)
+    sorted_product = sorted(filtered_products, key=lambda item: item.node.price.amount, reverse=True)
     for product in sorted_product[:4]:
-        log_parts.append(f"- {product.node.merchant_name}: {product.node.price:.6f}\n")
+        log_parts.append(f"- {product.node.merchant_name}: {product.node.price.amount:.6f}\n")
 
     return "".join(log_parts)
 
