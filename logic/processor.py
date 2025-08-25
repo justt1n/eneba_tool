@@ -50,14 +50,8 @@ class Processor:
                 logging.warning(
                     "Payload validation failed: min_price_adjustment cannot be greater than max_price_adjustment.")
                 return False
-        if payload.is_check_enabled_str not in ['TRUE', 'FALSE']:
-            logging.warning("Payload validation failed: is_check_enabled_str must be 'TRUE' or 'FALSE'.")
-            return False
         if payload.product_id is None:
             logging.warning("Payload validation failed: product_id is required.")
-            return False
-        if payload.product_variant_id is None:
-            logging.warning("Payload validation failed: product_variant_id is required.")
             return False
         if payload.product_compare is None:
             logging.warning("Payload validation failed: product_compare is required.")
@@ -83,6 +77,7 @@ class Processor:
                     final_price=CompareTarget(name="No Comparison", price=final_price),
                     log_message=log_str
                 )
+            payload.product_compare = payload.product_compare.replace("https://", "").split("/")[1]
             product_competition = self.eneba_service.get_competition_by_slug(payload.product_compare)
             if not product_competition:
                 logging.warning(f"No competition data found for product: {payload.product_name}")

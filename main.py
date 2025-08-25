@@ -30,7 +30,7 @@ async def run_automation():
                 if result.status == 1:
                     # TODO: Implement the logic to update the product price in the database or API
                     logging.info(
-                        f"Successfully processed payload for {payload.product_name}. Final price: {payload_result.final_price.price:.3f}")
+                        f"Successfully processed payload for {payload.product_name}. Final price: {result.final_price.price:.3f}")
                     log_data = {
                         'note': result.log_message,
                         'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')

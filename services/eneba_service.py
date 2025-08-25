@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 
 from clients.impl.eneba_client import EnebaClient
-from models.eneba_models import CompetitionEdge
+from models.eneba_models import CompetitionEdge, CompetitionNode
 from models.logic_models import AnalysisResult
 from models.sheet_models import Payload
 
