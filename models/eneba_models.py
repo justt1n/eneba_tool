@@ -87,7 +87,7 @@ class CalculatePriceInput(BaseModel):
 
 
 class UpdateAuctionInput(BaseModel):
-    id: UUID
+    id: str
     price_i_want_to_get: PriceInput = Field(alias="priceIWantToGet")
 
 

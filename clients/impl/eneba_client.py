@@ -81,9 +81,9 @@ class EnebaClient:
 
     def update_auction(
             self,
-            auction_id: UUID,
+            auction_id: str,
             amount: int,
-            currency: str
+            currency: str = "EUR"
     ) -> SUpdateAuctionGraphQLResponse:
 
         price_input = PriceInput(amount=amount, currency=currency)

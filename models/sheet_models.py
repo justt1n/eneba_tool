@@ -110,6 +110,7 @@ class Payload(BaseGSheetModel):
     fetched_stock: Optional[int] = None
     fetched_black_list: Optional[List[str]] = None
     prod_uuid: Optional[str] = None
+    offer_id: Optional[str] = None
 
     # convert min_price to float
     def get_min_price_value(self) -> Optional[float]:

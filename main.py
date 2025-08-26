@@ -28,7 +28,8 @@ async def run_automation():
                 hydrated_payload = sheet_service.fetch_data_for_payload(payload)
                 result = processor.process_single_payload(hydrated_payload)
                 if result.status == 1:
-                    # TODO: Implement the logic to update the product price in the database or API
+                    #TODO: Update price on Eneba
+                    processor.eneba_service.update_product_price(offer_id=payload.offer_id, new_price=result.final_price.price)
                     logging.info(
                         f"Successfully processed payload for {payload.product_name}. Final price: {result.final_price.price:.3f}")
                     log_data = {

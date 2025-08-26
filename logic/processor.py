@@ -58,7 +58,6 @@ class Processor:
             return False
         return True
 
-
     def process_single_payload(self, payload: Payload) -> PayloadResult:
         if not self._validate_payload(payload):
             return PayloadResult(payload=payload, log_message="Payload validation failed.")
@@ -80,13 +79,15 @@ class Processor:
             payload.product_compare = payload.product_compare.replace("https://", "").split("/")[1]
             product_competition = self.eneba_service.get_competition_by_slug(payload.product_compare)
             payload.prod_uuid = str(self.eneba_service.get_product_id_by_slug(payload.product_compare))
+            payload.offer_id = self.eneba_service.get_offer_id_by_url(payload.product_id)
             if not product_competition:
                 logging.warning(f"No competition data found for product: {payload.product_name}")
                 return PayloadResult(payload=payload, log_message="No competition data found.")
             analysis_result = self.eneba_service.analyze_competition(payload, product_competition)
             edited_price = self._calc_final_price(payload, analysis_result.competitive_price)
             if payload.get_min_price_value() is not None and edited_price < payload.get_min_price_value():
-                logging.info(f"Final price ({edited_price:.3f}) is below min_price ({payload.get_min_price_value():.3f}), not updating.")
+                logging.info(
+                    f"Final price ({edited_price:.3f}) is below min_price ({payload.get_min_price_value():.3f}), not updating.")
                 log_str = get_log_string(
                     mode="below_min",
                     payload=payload,
@@ -127,7 +128,8 @@ class Processor:
         payload_result = self.process_single_payload(payload)
         if payload_result.status == 1:
             #TODO: Implement the logic to update the product price in the database or API
-            logging.info(f"Successfully processed payload for {payload.product_name}. Final price: {payload_result.final_price.price:.3f}")
+            logging.info(
+                f"Successfully processed payload for {payload.product_name}. Final price: {payload_result.final_price.price:.3f}")
             log_data = {
                 'note': payload_result.log_message,
                 'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -136,11 +138,10 @@ class Processor:
             logging.error(f"Failed to process payload for {payload.product_name}. Error: {payload_result.log_message}")
 
 
-
 def _analysis_log_string(
-    payload: Payload,
-    analysis_result: AnalysisResult = None,
-    filtered_products: List[CompetitionEdge] = None
+        payload: Payload,
+        analysis_result: AnalysisResult = None,
+        filtered_products: List[CompetitionEdge] = None
 ) -> str:
     log_parts = []
     if analysis_result.competitor_name is None:
@@ -159,8 +160,10 @@ def _analysis_log_string(
 
     sellers_below = analysis_result.sellers_below_min
     if sellers_below:
-        sellers_info = "; ".join([f"{s.node.merchant_name} = {s.node.price.price_no_commission} ({s.node.price.old_price_with_commission:.6f})\n" for s in sellers_below[:6] if
-                                  s.node.merchant_name not in payload.fetched_black_list])
+        sellers_info = "; ".join([
+                                     f"{s.node.merchant_name} = {s.node.price.price_no_commission} ({s.node.price.old_price_with_commission:.6f})\n"
+                                     for s in sellers_below[:6] if
+                                     s.node.merchant_name not in payload.fetched_black_list])
         log_parts.append(f"Seller giá nhỏ hơn min_price):\n {sellers_info}")
 
     log_parts.append("Top 4 sản phẩm:\n")
@@ -172,11 +175,11 @@ def _analysis_log_string(
 
 
 def get_log_string(
-    mode: str,
-    payload: Payload,
-    final_price: float,
-    analysis_result: AnalysisResult = None,
-    filtered_products: List[CompetitionEdge] = None
+        mode: str,
+        payload: Payload,
+        final_price: float,
+        analysis_result: AnalysisResult = None,
+        filtered_products: List[CompetitionEdge] = None
 ) -> str:
     timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     log_parts = []

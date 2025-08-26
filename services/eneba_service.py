@@ -1,4 +1,5 @@
 import copy
+import re
 from typing import List
 from uuid import UUID
 
@@ -99,6 +100,19 @@ class EnebaService:
             return commission_price
         except AttributeError as e:
             raise ValueError(f"Invalid response structure: {e}") from e
+
+    def update_product_price(self, offer_id: str, new_price: float) -> bool:
+        price = int(new_price * 100)
+        res = self._client.update_auction(auction_id=offer_id, amount=price)
+        return res.data.s_update_auction.success
+
+    def get_offer_id_by_url(self, url: str) -> str:
+        pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        match = re.search(pattern, url)
+        if match:
+            return match.group(0)
+        else:
+            raise ValueError(f"Invalid URL format, cannot extract offer ID: {url}")
 
     def close(self):
         self._client.close()
