@@ -65,7 +65,7 @@ class Processor:
         try:
             if not payload.is_compare_enabled:
                 logging.info(f"Skipping comparison for product: {payload.product_name}")
-                final_price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
+                final_price = round_up_to_n_decimals(payload.fetched_min_price, payload.price_rounding)
                 log_str = get_log_string(
                     mode="not_compare",
                     payload=payload,
@@ -79,6 +79,7 @@ class Processor:
                 )
             payload.product_compare = payload.product_compare.replace("https://", "").split("/")[1]
             product_competition = self.eneba_service.get_competition_by_slug(payload.product_compare)
+            payload.prod_uuid = str(self.eneba_service.get_product_id_by_slug(payload.product_compare))
             if not product_competition:
                 logging.warning(f"No competition data found for product: {payload.product_name}")
                 return PayloadResult(payload=payload, log_message="No competition data found.")
@@ -158,8 +159,8 @@ def _analysis_log_string(
 
     sellers_below = analysis_result.sellers_below_min
     if sellers_below:
-        sellers_info = "; ".join([f"{s.seller_name} = {s.node.price.amount:.6f}\n" for s in sellers_below[:6] if
-                                  s.seller_name not in payload.fetched_black_list])
+        sellers_info = "; ".join([f"{s.node.merchant_name} = {s.node.price.price_no_commission} ({s.node.price.old_price_with_commission:.6f})\n" for s in sellers_below[:6] if
+                                  s.node.merchant_name not in payload.fetched_black_list])
         log_parts.append(f"Seller giá nhỏ hơn min_price):\n {sellers_info}")
 
     log_parts.append("Top 4 sản phẩm:\n")

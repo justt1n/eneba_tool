@@ -49,3 +49,14 @@ S_CALCULATE_PRICE_QUERY = """
         }
     }
 """
+
+S_UPDATE_AUCTION_MUTATION = """
+    mutation S_updateAuction($input: S_API_UpdateAuctionInput!) {
+        S_updateAuction(input: $input) {
+            success
+            actionId
+            priceChanged
+            paidForPriceChange
+        }
+    }
+"""

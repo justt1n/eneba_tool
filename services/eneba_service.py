@@ -59,6 +59,11 @@ class EnebaService:
                 if payload.fetched_max_price is not None and product.node.price.amount > payload.fetched_max_price:
                     continue
                 filtered_products.append(product)
+        for product in filtered_products:
+            price_obj = self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
+            product.node.price.price_no_commission = price_obj.get_price_without_commission()
+            product.node.price.old_price_with_commission = product.node.price.amount
+            product.node.price.amount = price_obj.get_price_without_commission()
         return filtered_products
 
     def analyze_competition(self, payload: Payload, products: List[CompetitionEdge]) -> AnalysisResult:
@@ -83,14 +88,12 @@ class EnebaService:
             sellers_below_min=sellers_below_min
         )
 
-    def calculate_commission_price(self,prodId: UUID, amount: float, currency: str = "EUR") -> CommissionPrice:
+    def calculate_commission_price(self, prodId: str, amount: float, currency: str = "EUR") -> CommissionPrice:
         price = int(amount * 100)
         res = self._client.calculate_price(product_id=prodId, amount=price, currency=currency)
         commission_price = CommissionPrice(
-            base_price=price,
-            commission_amount=res.data.s_calculate_price.price_with_commission.amount - price,
-            total_price=res.data.s_calculate_price.price_with_commission.amount,
-            currency=currency
+            price_without_commission=res.data.s_calculate_price.price_without_commission.amount,
+            price_with_commission=res.data.s_calculate_price.price_with_commission.amount,
         )
         try:
             return commission_price

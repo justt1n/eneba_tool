@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -30,6 +30,8 @@ class SProductsGraphQLResponse(BaseModel):
 class Price(BaseModel):
     amount: int
     currency: str
+    price_no_commission: Optional[float] = None
+    old_price_with_commission: Optional[float] = None
 
 
 class CompetitionNode(BaseModel):
@@ -82,3 +84,23 @@ class PriceInput(BaseModel):
 class CalculatePriceInput(BaseModel):
     product_id: str = Field(alias="productId")
     price: PriceInput
+
+
+class UpdateAuctionInput(BaseModel):
+    id: UUID
+    price_i_want_to_get: PriceInput = Field(alias="priceIWantToGet")
+
+
+class UpdateAuctionPayload(BaseModel):
+    success: bool
+    action_id: UUID = Field(alias="actionId")
+    price_changed: bool = Field(alias="priceChanged")
+    paid_for_price_change: bool = Field(alias="paidForPriceChange")
+
+
+class SUpdateAuctionData(BaseModel):
+    s_update_auction: UpdateAuctionPayload = Field(alias="S_updateAuction")
+
+
+class SUpdateAuctionGraphQLResponse(BaseModel):
+    data: SUpdateAuctionData

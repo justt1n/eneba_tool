@@ -10,11 +10,11 @@ if __name__ == "__main__":
 
     _id = eneba_service.get_product_id_by_slug("psn-playstation-network-card-250-usd-usa-psn-key-united-states")
     price_result = eneba_service.calculate_commission_price(
-        prodId=_id,
+        prodId=str(_id),
         amount=250,
     )
     print(price_result.model_dump_json())
-    # # print(_id)
+    # print(_id)
     # # products = eneba_service.get_competition_by_product_id(_id)
     # products = eneba_service.get_competition_by_slug("psn-playstation-network-card-250-usd-usa-psn-key-united-states")
     # products.sort(key=lambda x: x.node.price.amount, reverse=False)
