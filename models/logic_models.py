@@ -24,3 +24,9 @@ class PayloadResult(BaseModel):
     competition: list[CompetitionEdge] | None = None
     final_price: CompareTarget | None = None
     log_message: str | None = None
+
+class CommissionPrice(BaseModel):
+    base_price: float
+    commission_amount: float
+    total_price: float
+    currency: str

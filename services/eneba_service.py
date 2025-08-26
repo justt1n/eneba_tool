@@ -4,7 +4,7 @@ from uuid import UUID
 
 from clients.impl.eneba_client import EnebaClient
 from models.eneba_models import CompetitionEdge, CompetitionNode
-from models.logic_models import AnalysisResult
+from models.logic_models import AnalysisResult, CommissionPrice
 from models.sheet_models import Payload
 
 
@@ -82,6 +82,20 @@ class EnebaService:
             top_sellers_for_log=top_sellers_for_log,
             sellers_below_min=sellers_below_min
         )
+
+    def calculate_commission_price(self,prodId: UUID, amount: float, currency: str = "EUR") -> CommissionPrice:
+        price = int(amount * 100)
+        res = self._client.calculate_price(product_id=prodId, amount=price, currency=currency)
+        commission_price = CommissionPrice(
+            base_price=price,
+            commission_amount=res.data.s_calculate_price.price_with_commission.amount - price,
+            total_price=res.data.s_calculate_price.price_with_commission.amount,
+            currency=currency
+        )
+        try:
+            return commission_price
+        except AttributeError as e:
+            raise ValueError(f"Invalid response structure: {e}") from e
 
     def close(self):
         self._client.close()

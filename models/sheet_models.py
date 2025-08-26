@@ -103,12 +103,23 @@ class Payload(BaseGSheetModel):
     sheet_blacklist: Annotated[Optional[str], "Y"] = None
     cell_blacklist: Annotated[Optional[str], "Z"] = None
     relax: Annotated[Optional[str], "AA"] = None
-    min_price: Annotated[Optional[float], "AB"] = None
+    min_price: Annotated[Optional[str], "AB"] = None
 
     fetched_min_price: Optional[float] = None
     fetched_max_price: Optional[float] = None
     fetched_stock: Optional[int] = None
     fetched_black_list: Optional[List[str]] = None
+
+    # convert min_price to float
+    def get_min_price_value(self) -> Optional[float]:
+        if self.min_price is None:
+            return None
+        try:
+            final_value = self.min_price.replace(',', "").strip()
+            return float(final_value)
+        except (ValueError, TypeError):
+            logging.warning(f"Could not convert min_price value '{self.min_price}' to float.")
+            return None
 
     @computed_field
     @property
@@ -144,7 +155,7 @@ class Payload(BaseGSheetModel):
 
     @property
     def is_have_min_price(self) -> bool:
-        return self.min_price is not None and self.min_price > 0
+        return self.get_min_price_value() is not None and self.get_min_price_value() > 0
 
     def prepare_update(self, sheet_name: str, updates: Dict[str, Any]) -> List[Dict]:
         """

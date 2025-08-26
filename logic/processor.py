@@ -84,8 +84,8 @@ class Processor:
                 return PayloadResult(payload=payload, log_message="No competition data found.")
             analysis_result = self.eneba_service.analyze_competition(payload, product_competition)
             edited_price = self._calc_final_price(payload, analysis_result.competitive_price)
-            if payload.min_price is not None and edited_price < payload.min_price:
-                logging.info(f"Final price ({edited_price:.3f}) is below min_price ({payload.min_price:.3f}), not updating.")
+            if payload.get_min_price_value() is not None and edited_price < payload.get_min_price_value():
+                logging.info(f"Final price ({edited_price:.3f}) is below min_price ({payload.get_min_price_value():.3f}), not updating.")
                 log_str = get_log_string(
                     mode="below_min",
                     payload=payload,
@@ -194,7 +194,7 @@ def get_log_string(
     elif mode == "below_min":
         log_parts = [
             timestamp,
-            f"Giá cuối cùng ({final_price:.3f}) nhỏ hơn giá tối thiểu ({payload.min_price:.3f}), không cập nhật.\n"
+            f"Giá cuối cùng ({final_price:.3f}) nhỏ hơn giá tối thiểu ({payload.get_min_price_value():.3f}), không cập nhật.\n"
         ]
         if analysis_result:
             log_parts.append(_analysis_log_string(payload, analysis_result, filtered_products))

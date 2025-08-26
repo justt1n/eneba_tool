@@ -1,12 +1,12 @@
 # eneba_client.py
 import logging
-from typing import List
 from uuid import UUID
 
 from clients.base_graphql_client import BaseGraphQLClient
-from clients.impl.eneba_query import S_PRODUCTS_BY_SLUGS_QUERY, S_COMPETITION_QUERY
+from clients.impl.eneba_query import S_PRODUCTS_BY_SLUGS_QUERY, S_COMPETITION_QUERY, S_CALCULATE_PRICE_QUERY
 from logic.auth import EnebaAuthHandler
-from models.eneba_models import SProductsGraphQLResponse, SCompetitionGraphQLResponse
+from models.eneba_models import SProductsGraphQLResponse, SCompetitionGraphQLResponse, SCalculatePriceGraphQLResponse, \
+    PriceInput, CalculatePriceInput
 from utils.config import settings
 
 
@@ -57,3 +57,24 @@ class EnebaClient:
 
         response_json = self._client.execute(query=S_COMPETITION_QUERY, variables=variables)
         return SCompetitionGraphQLResponse.model_validate(response_json)
+
+
+    def calculate_price(
+        self,
+        product_id: UUID,
+        amount: int,
+        currency: str
+    ) -> SCalculatePriceGraphQLResponse:
+        price_input = PriceInput(amount=amount, currency=currency)
+        input_data = CalculatePriceInput(productId=str(product_id), price=price_input)
+
+        variables = {
+            "input": input_data.model_dump(by_alias=True)
+        }
+
+        response_json = self._client.execute(
+            query=S_CALCULATE_PRICE_QUERY,
+            variables=variables
+        )
+
+        return SCalculatePriceGraphQLResponse.model_validate(response_json)

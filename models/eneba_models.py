@@ -59,3 +59,26 @@ class SCompetitionData(BaseModel):
 
 class SCompetitionGraphQLResponse(BaseModel):
     data: SCompetitionData
+
+
+class CalculatedPrice(BaseModel):
+    price_with_commission: Price = Field(alias="priceWithCommission")
+    price_without_commission: Price = Field(alias="priceWithoutCommission")
+
+
+class SCalculatePriceData(BaseModel):
+    s_calculate_price: CalculatedPrice = Field(alias="S_calculatePrice")
+
+
+class SCalculatePriceGraphQLResponse(BaseModel):
+    data: SCalculatePriceData
+
+
+class PriceInput(BaseModel):
+    amount: int
+    currency: str
+
+
+class CalculatePriceInput(BaseModel):
+    product_id: str = Field(alias="productId")
+    price: PriceInput

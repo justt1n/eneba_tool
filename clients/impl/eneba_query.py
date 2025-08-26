@@ -24,7 +24,7 @@ S_COMPETITION_QUERY = """
                             isInStock
                             merchantName
                             belongsToYou
-                            price(currency: usd) {
+                            price(currency: eur) {
                                 amount
                                 currency
                             }
@@ -34,3 +34,18 @@ S_COMPETITION_QUERY = """
             }
         }
     """
+
+S_CALCULATE_PRICE_QUERY = """
+    query S_calculatePrice($input: S_API_CalculatePriceInput!) {
+        S_calculatePrice(input: $input) {
+            priceWithCommission {
+                amount
+                currency
+            }
+            priceWithoutCommission {
+                currency
+                amount
+            }
+        }
+    }
+"""
