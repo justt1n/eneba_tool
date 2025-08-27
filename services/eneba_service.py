@@ -62,7 +62,7 @@ class EnebaService:
                 filtered_products.append(product)
         tmp_i = 0
         for product in filtered_products:
-            if tmp_i == 4:
+            if tmp_i == 3:
                 break
             price_obj = self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
             product.node.price.price_no_commission = price_obj.get_price_without_commission()
