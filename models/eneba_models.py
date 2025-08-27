@@ -93,7 +93,7 @@ class UpdateAuctionInput(BaseModel):
 
 class UpdateAuctionPayload(BaseModel):
     success: bool
-    action_id: UUID = Field(alias="actionId")
+    action_id: Optional[UUID] = Field(alias="actionId")
     price_changed: bool = Field(alias="priceChanged")
     paid_for_price_change: bool = Field(alias="paidForPriceChange")
 

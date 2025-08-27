@@ -60,11 +60,15 @@ class EnebaService:
                 if payload.fetched_max_price is not None and product.node.price.amount > payload.fetched_max_price:
                     continue
                 filtered_products.append(product)
+        tmp_i = 0
         for product in filtered_products:
+            if tmp_i == 4:
+                break
             price_obj = self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
             product.node.price.price_no_commission = price_obj.get_price_without_commission()
             product.node.price.old_price_with_commission = product.node.price.amount
             product.node.price.amount = price_obj.get_price_without_commission()
+            tmp_i += 1
         return filtered_products
 
     def analyze_competition(self, payload: Payload, products: List[CompetitionEdge]) -> AnalysisResult:

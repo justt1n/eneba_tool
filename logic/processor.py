@@ -71,7 +71,7 @@ class Processor:
                     final_price=final_price
                 )
                 return PayloadResult(
-                    status=0,
+                    status=1,
                     payload=payload,
                     final_price=CompareTarget(name="No Comparison", price=final_price),
                     log_message=log_str
@@ -90,6 +90,21 @@ class Processor:
                     f"Final price ({edited_price:.3f}) is below min_price ({payload.get_min_price_value():.3f}), not updating.")
                 log_str = get_log_string(
                     mode="below_min",
+                    payload=payload,
+                    final_price=edited_price,
+                    analysis_result=analysis_result,
+                    filtered_products=product_competition
+                )
+                return PayloadResult(
+                    status=0,
+                    payload=payload,
+                    final_price=None,
+                    log_message=log_str
+                )
+            elif payload.get_min_price_value() is None:
+                logging.info("No min_price set, not updating.")
+                log_str = get_log_string(
+                    mode="no_min_price",
                     payload=payload,
                     final_price=edited_price,
                     analysis_result=analysis_result,
