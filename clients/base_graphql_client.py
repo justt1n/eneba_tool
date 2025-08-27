@@ -1,11 +1,40 @@
 # base_graphql_client.py
 import json
 import logging
+import re
 from typing import Any, Dict, Optional
 
 import httpx
+from tenacity import stop_after_delay, retry, wait_fixed, retry_if_exception, RetryCallState
 
 from clients.exceptions import GraphQLError, GraphQLClientError
+
+
+def _get_retry_after_seconds(retry_state: "RetryCallState") -> int:
+    exception = retry_state.outcome.exception()
+    if exception and isinstance(exception, GraphQLError):
+        try:
+            error_message = exception.errors[0].get('message', '')
+
+            match = re.search(r'Retry after (\d+)', error_message)
+            if match:
+                seconds = int(match.group(1))
+                logging.warning(f"Rate limit hit. Retrying after {seconds} seconds...")
+                return seconds
+        except (IndexError, KeyError, TypeError):
+            pass
+    logging.warning("Rate limit hit. Retrying after 5 seconds (default)...")
+    return 5
+
+
+def _is_rate_limit_error(exception: BaseException) -> bool:
+    if isinstance(exception, GraphQLError):
+        try:
+            error_message = exception.errors[0].get('message', '')
+            return 'Too Many Requests' in error_message
+        except (IndexError, KeyError, TypeError):
+            return False
+    return False
 
 
 class BaseGraphQLClient:
@@ -19,6 +48,11 @@ class BaseGraphQLClient:
         self.auth_handler = auth_handler
         self._client = httpx.Client()
 
+    @retry(
+        stop=stop_after_delay(60),
+        retry=retry_if_exception(_is_rate_limit_error),
+        wait=_get_retry_after_seconds
+    )
     def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         headers = {"Content-Type": "application/json"}
         headers.update({"X-Proxy-Secret": "embeiuquadi"})
