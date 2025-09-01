@@ -46,8 +46,12 @@ async def run_automation():
                 if log_data:
                     sheet_service.update_log_for_payload(payload, log_data)
 
-                logging.info(f"Processed row {payload.row_index}, sleeping for {settings.SLEEP_TIME}s.")
-                sleep(settings.SLEEP_TIME)
+                if payload.relax and int(payload.relax) > 0:
+                    _sleep = int(payload.relax)
+                else:
+                    _sleep = 5
+                logging.info(f"Processed row {payload.row_index}, sleeping for {_sleep}s.")
+                sleep(_sleep)
 
             except Exception as e:
                 logging.error(f"Error in flow for row {payload.row_index}: {e}")
@@ -64,5 +68,5 @@ if __name__ == "__main__":
 
     while True:
         asyncio.run(run_automation())
-        logging.info("Completed processing all payloads. Next round in 10 seconds.")
-        sleep(10)
+        logging.info(f"Completed processing all payloads. Next round in {settings.SLEEP_TIME} seconds.")
+        sleep(settings.SLEEP_TIME)
