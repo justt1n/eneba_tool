@@ -110,6 +110,40 @@ class EnebaService:
         res = self._client.update_auction(auction_id=offer_id, amount=price)
         return res.data.s_update_auction.success
 
+    def check_next_free_in_minutes(self, prd_id: str) -> int:
+        """
+        Checks the time in minutes until the next free quota refresh.
+
+        Args:
+            prd_id: The ID of the stock (as a string).
+
+        Returns:
+            The number of minutes until the next free refresh.
+            Returns 0 if the quota is fully recharged (nextFreeIn is null).
+
+        Raises:
+            ValueError: If prd_id has an invalid UUID format or the stock is not found.
+        """
+        try:
+            stock_uuid = UUID(prd_id)
+        except ValueError:
+            raise ValueError(f"'{prd_id}' is not a valid UUID format.")
+
+        res = self._client.get_stock_info(stock_uuid)
+
+        try:
+            quota_info = res.data.s_stock.edges[0].node.price_update_quota
+        except (IndexError, AttributeError):
+            raise ValueError(f"No stock information found for ID: {prd_id}")
+
+        # Handle the logic as requested
+        if quota_info.next_free_in is None:
+            # If nextFreeIn is null, return 0
+            return 0
+        else:
+            # If it has a value, convert from seconds to minutes (rounding down)
+            return quota_info.next_free_in // 60
+
     def get_offer_id_by_url(self, url: str) -> str:
         pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
         match = re.search(pattern, url)

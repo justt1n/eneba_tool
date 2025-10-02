@@ -60,3 +60,20 @@ S_UPDATE_AUCTION_MUTATION = """
         }
     }
 """
+
+S_STOCK_QUERY = """
+    query S_competition($productIds: [S_Uuid!], $currency: Currency!) {
+        S_stock(stockId: $stockId) {
+            edges {
+                node {
+                    id
+                    priceUpdateQuota {
+                        quota
+                        nextFreeIn
+                        totalFree
+                    }
+                }
+            }
+        }
+    }
+"""

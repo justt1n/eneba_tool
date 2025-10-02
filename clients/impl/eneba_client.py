@@ -4,10 +4,10 @@ from uuid import UUID
 
 from clients.base_graphql_client import BaseGraphQLClient
 from clients.impl.eneba_query import S_PRODUCTS_BY_SLUGS_QUERY, S_COMPETITION_QUERY, S_CALCULATE_PRICE_QUERY, \
-    S_UPDATE_AUCTION_MUTATION
+    S_UPDATE_AUCTION_MUTATION, S_STOCK_QUERY
 from logic.auth import EnebaAuthHandler
 from models.eneba_models import SProductsGraphQLResponse, SCompetitionGraphQLResponse, SCalculatePriceGraphQLResponse, \
-    PriceInput, CalculatePriceInput, UpdateAuctionInput, SUpdateAuctionGraphQLResponse
+    PriceInput, CalculatePriceInput, UpdateAuctionInput, SUpdateAuctionGraphQLResponse, SStockGraphQLResponse
 from utils.config import settings
 
 
@@ -60,10 +60,10 @@ class EnebaClient:
         return SCompetitionGraphQLResponse.model_validate(response_json)
 
     def calculate_price(
-            self,
-            product_id: str,
-            amount: int,
-            currency: str = "EUR"
+        self,
+        product_id: str,
+        amount: int,
+        currency: str = "EUR"
     ) -> SCalculatePriceGraphQLResponse:
         price_input = PriceInput(amount=amount, currency=currency)
         input_data = CalculatePriceInput(productId=product_id, price=price_input)
@@ -80,12 +80,11 @@ class EnebaClient:
         return SCalculatePriceGraphQLResponse.model_validate(response_json)
 
     def update_auction(
-            self,
-            auction_id: str,
-            amount: int,
-            currency: str = "EUR"
+        self,
+        auction_id: str,
+        amount: int,
+        currency: str = "EUR"
     ) -> SUpdateAuctionGraphQLResponse:
-
         price_input = PriceInput(amount=amount, currency=currency)
         input_data = UpdateAuctionInput(id=auction_id, priceIWantToGet=price_input)
 
@@ -99,3 +98,17 @@ class EnebaClient:
         )
 
         return SUpdateAuctionGraphQLResponse.model_validate(response_json)
+
+    def get_stock_info(self, stock_id: UUID) -> SStockGraphQLResponse:
+        self.logger.info(f"Fetching stock info for ID: {stock_id}")
+
+        variables = {
+            "stockId": str(stock_id)
+        }
+
+        response_json = self._client.execute(
+            query=S_STOCK_QUERY,
+            variables=variables
+        )
+
+        return SStockGraphQLResponse.model_validate(response_json)

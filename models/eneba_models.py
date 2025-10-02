@@ -104,3 +104,30 @@ class SUpdateAuctionData(BaseModel):
 
 class SUpdateAuctionGraphQLResponse(BaseModel):
     data: SUpdateAuctionData
+
+
+class PriceUpdateQuota(BaseModel):
+    quota: int
+    next_free_in: Optional[int] = Field(alias="nextFreeIn")
+    total_free: int = Field(alias="totalFree")
+
+
+class StockNode(BaseModel):
+    id: UUID
+    price_update_quota: PriceUpdateQuota = Field(alias="priceUpdateQuota")
+
+
+class StockEdge(BaseModel):
+    node: StockNode
+
+
+class StockConnection(BaseModel):
+    edges: List[StockEdge]
+
+
+class SStockData(BaseModel):
+    s_stock: StockConnection = Field(alias="S_stock")
+
+
+class SStockGraphQLResponse(BaseModel):
+    data: SStockData
