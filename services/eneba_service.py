@@ -110,7 +110,7 @@ class EnebaService:
         res = self._client.update_auction(auction_id=offer_id, amount=price)
         return res.data.s_update_auction.success
 
-    def check_next_free_in_minutes(self, prd_id: str) -> int:
+    def check_next_free_in_minutes(self, prd_id: str) -> tuple[int, int] | int:
         """
         Checks the time in minutes until the next free quota refresh.
 
@@ -139,10 +139,10 @@ class EnebaService:
         # Handle the logic as requested
         if quota_info.next_free_in is None:
             # If nextFreeIn is null, return 0
-            return 0
+            return 0, quota_info.total_free
         else:
             # If it has a value, convert from seconds to minutes (rounding down)
-            return quota_info.next_free_in // 60
+            return quota_info.next_free_in // 60, 0
 
     def get_offer_id_by_url(self, url: str) -> str:
         pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
