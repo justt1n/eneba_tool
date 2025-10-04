@@ -30,7 +30,7 @@ async def run_automation():
                 if result.status == 1:
                     #TODO: Update price on Eneba
                     #check if quota > 0 then update price
-                    _quota_remain, _quota_count = processor.eneba_service.check_next_free_in_minutes(payload.product_id)
+                    _quota_remain, _quota_count = processor.eneba_service.check_next_free_in_minutes(payload.prod_uuid)
                     if _quota_remain is not None and _quota_remain > 0:
                         processor.eneba_service.update_product_price(offer_id=payload.offer_id, new_price=result.final_price.price)
                         logging.info(
