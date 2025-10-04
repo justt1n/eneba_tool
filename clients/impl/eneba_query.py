@@ -62,7 +62,7 @@ S_UPDATE_AUCTION_MUTATION = """
 """
 
 S_STOCK_QUERY = """
-    query S_competition($productIds: [S_Uuid!], $currency: Currency!) {
+    query S_stock($stockId: S_Uuid!) {
         S_stock(stockId: $stockId) {
             edges {
                 node {

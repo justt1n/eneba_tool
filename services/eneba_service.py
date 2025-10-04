@@ -125,6 +125,7 @@ class EnebaService:
             ValueError: If prd_id has an invalid UUID format or the stock is not found.
         """
         try:
+            prd_id = prd_id.split('/')[-1]
             stock_uuid = UUID(prd_id)
         except ValueError:
             raise ValueError(f"'{prd_id}' is not a valid UUID format.")
@@ -139,7 +140,7 @@ class EnebaService:
         # Handle the logic as requested
         if quota_info.next_free_in is None:
             # If nextFreeIn is null, return 0
-            return 0, quota_info.total_free
+            return 0, quota_info.quota
         else:
             # If it has a value, convert from seconds to minutes (rounding down)
             return quota_info.next_free_in // 60, 0
