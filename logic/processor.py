@@ -84,6 +84,8 @@ class Processor:
                 logging.warning(f"No competition data found for product: {payload.product_name}")
                 return PayloadResult(payload=payload, log_message="No competition data found.")
             analysis_result = self.eneba_service.analyze_competition(payload, product_competition)
+            payload.target_price = analysis_result.competitive_price
+
             edited_price = self._calc_final_price(payload, analysis_result.competitive_price)
             if payload.get_min_price_value() is not None and edited_price < payload.get_min_price_value():
                 logging.info(
