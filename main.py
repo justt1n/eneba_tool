@@ -26,11 +26,12 @@ async def run_automation():
         for payload in payloads_to_process:
             try:
                 hydrated_payload = sheet_service.fetch_data_for_payload(payload)
+                hydrated_payload, _quota_remain, _quota_count = processor.eneba_service.check_next_free_in_minutes(
+                    hydrated_payload)
                 result = processor.process_single_payload(hydrated_payload)
                 if result.status == 1:
                     #TODO: Update price on Eneba
                     #check if quota > 0 then update price
-                    _quota_remain, _quota_count = processor.eneba_service.check_next_free_in_minutes(payload.product_id)
                     if _quota_remain is not None and _quota_count > 0:
                         processor.eneba_service.update_product_price(offer_id=payload.offer_id, new_price=result.final_price.price)
                         logging.info(
@@ -48,6 +49,15 @@ async def run_automation():
                                     f"\n{result.log_message}",
                             'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         }
+                elif result.status == 2:
+                    logging.info(
+                        f"Current price is lower than target, not update"
+                        f"\nQuota remaining: {_quota_count}"
+                    )
+                    log_data = {
+                        'note': f"Quote remain: {_quota_count} times\n" + result.log_message,
+                        'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
                 else:
                     logging.warning(f"Payload {payload.product_name} did not meet conditions for processing.")
                     log_data = {

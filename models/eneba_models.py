@@ -112,9 +112,15 @@ class PriceUpdateQuota(BaseModel):
     total_free: int = Field(alias="totalFree")
 
 
+class Commission(BaseModel):
+    rate: Price
+
 class StockNode(BaseModel):
     id: UUID
-    price_update_quota: PriceUpdateQuota = Field(alias="priceUpdateQuota")
+    price_update_quota: Optional[PriceUpdateQuota] = Field(default=None, alias="priceUpdateQuota")
+
+    price: Optional[Price] = None
+    commission: Optional[Commission] = None
 
 
 class StockEdge(BaseModel):

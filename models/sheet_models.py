@@ -111,6 +111,8 @@ class Payload(BaseGSheetModel):
     fetched_black_list: Optional[List[str]] = None
     prod_uuid: Optional[str] = None
     offer_id: Optional[str] = None
+    current_price: Optional[float] = None
+    target_price: Optional[float] = None
 
     # convert min_price to float
     def get_min_price_value(self) -> Optional[float]:
@@ -153,7 +155,14 @@ class Payload(BaseGSheetModel):
 
     @property
     def is_compare_enabled(self) -> bool:
-        return self.is_compare_enabled_str == '1'
+        return self.is_compare_enabled_str != '0'
+
+    @property
+    def is_follow_price(self) -> bool:
+        if self.is_compare_enabled_str == '1':
+            return True
+        else:
+            return False
 
     @property
     def is_have_min_price(self) -> bool:

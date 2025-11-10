@@ -76,7 +76,7 @@ class EnebaService:
         sellers_below_min = []
         filtered_products = self._filter_products(payload, products)
         competitive_price = payload.fetched_max_price
-        competitor_name = "Not found, set max"
+        competitor_name = "Not found"
         if len(filtered_products) > 0:
             filtered_products.sort(key=lambda x: x.node.price.amount)
             competitive_price = filtered_products[0].node.price.amount
@@ -110,7 +110,7 @@ class EnebaService:
         res = self._client.update_auction(auction_id=offer_id, amount=price)
         return res.data.s_update_auction.success
 
-    def check_next_free_in_minutes(self, prd_id: str) -> tuple[int, int] | int:
+    def check_next_free_in_minutes(self, payload: Payload) -> tuple[Payload, int, int] | tuple[int, int]:
         """
         Checks the time in minutes until the next free quota refresh.
 
@@ -124,6 +124,7 @@ class EnebaService:
         Raises:
             ValueError: If prd_id has an invalid UUID format or the stock is not found.
         """
+        prd_id = payload.product_id
         try:
             prd_id = prd_id.split('/')[-1]
             stock_uuid = UUID(prd_id)
@@ -134,16 +135,21 @@ class EnebaService:
 
         try:
             quota_info = res.data.s_stock.edges[0].node.price_update_quota
+            _price = res.data.s_stock.edges[0].node.price.amount
+            _commission = res.data.s_stock.edges[0].node.commission.rate.amount if res.data.s_stock.edges[0].node.commission.rate.amount else 0
+            payload.current_price = _price - _commission
+            if payload.current_price > 0:
+                payload.current_price = payload.current_price / 100
         except (IndexError, AttributeError):
             raise ValueError(f"No stock information found for ID: {prd_id}")
 
         # Handle the logic as requested
         if quota_info.next_free_in is None:
             # If nextFreeIn is null, return 0
-            return 0, quota_info.quota
+            return payload, 0, quota_info.quota
         else:
             # If it has a value, convert from seconds to minutes (rounding down)
-            return quota_info.next_free_in // 60, 0
+            return payload, quota_info.next_free_in // 60, 0
 
     def get_offer_id_by_url(self, url: str) -> str:
         pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"

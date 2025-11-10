@@ -65,7 +65,18 @@ S_STOCK_QUERY = """
     query S_stock($stockId: S_Uuid!) {
         S_stock(stockId: $stockId) {
             edges {
+                cursor
                 node {
+                    price {
+                        amount
+                        currency
+                    }
+                    commission {
+                        rate {
+                            amount
+                            currency
+                        }
+                    }
                     id
                     priceUpdateQuota {
                         quota

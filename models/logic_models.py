@@ -20,7 +20,7 @@ class AnalysisResult(BaseModel):
 
 
 class PayloadResult(BaseModel):
-    status: int  # 1 for success, 0 for failure
+    status: int  # 1 for success, 0 for failure , 2 for not follow
     payload: Payload
     competition: list[CompetitionEdge] | None = None
     final_price: CompareTarget | None = None
