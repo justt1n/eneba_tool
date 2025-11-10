@@ -1,6 +1,6 @@
 # utils/config.py
 import json
-from typing import List
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     CLIENT_ID: str
     AUTH_ID: str
     AUTH_SECRET: str
-
+    WORKERS: Optional[float] = 1
     @property
     def HEADER_KEY_COLUMNS(self) -> List[str]:
         """Chuyển đổi chuỗi JSON của các cột key thành một danh sách Python."""

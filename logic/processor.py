@@ -6,7 +6,7 @@ from typing import List
 from models.eneba_models import CompetitionEdge
 from models.logic_models import PayloadResult, CompareTarget, AnalysisResult
 from models.sheet_models import Payload
-from services.eneba_service import EnebaService
+from services.eneba_service import EnebaService  # Đây là EnebaService phiên bản async
 from utils.utils import round_up_to_n_decimals
 
 
@@ -14,6 +14,7 @@ class Processor:
     def __init__(self, eneba_service: EnebaService):
         self.eneba_service = eneba_service
 
+    # Hàm này là logic thuần túy, không cần async
     def _calc_final_price_old(self, payload: Payload, price: float) -> float:
         if price is None:
             price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
@@ -38,6 +39,7 @@ class Processor:
 
         return price
 
+    # Hàm này là logic thuần túy, không cần async
     def _calc_final_price(self, payload: Payload, price: float) -> float:
         if price is None:
             price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
@@ -84,6 +86,7 @@ class Processor:
 
         return price
 
+    # Hàm này là logic thuần túy, không cần async
     def _validate_payload(self, payload: Payload) -> bool:
         if not payload.product_name:
             logging.warning("Payload validation failed: product_name is required.")
@@ -104,7 +107,8 @@ class Processor:
             return False
         return True
 
-    def process_single_payload(self, payload: Payload) -> PayloadResult:
+    # Chuyển sang `async def` vì nó gọi service
+    async def process_single_payload(self, payload: Payload) -> PayloadResult:
         if not self._validate_payload(payload):
             return PayloadResult(payload=payload, log_message="Payload validation failed.")
         try:
@@ -122,16 +126,31 @@ class Processor:
                     final_price=CompareTarget(name="No Comparison", price=final_price),
                     log_message=log_str
                 )
+
             payload.product_compare = payload.product_compare.replace("https://", "").split("/")[1]
-            product_competition = self.eneba_service.get_competition_by_slug(payload.product_compare)
-            payload.prod_uuid = str(self.eneba_service.get_product_id_by_slug(payload.product_compare))
+
+            # Thêm `await`
+            product_competition = await self.eneba_service.get_competition_by_slug(payload.product_compare)
+
+            # Thêm `await`
+            product_id = await self.eneba_service.get_product_id_by_slug(payload.product_compare)
+            payload.prod_uuid = str(product_id)
+
+            # Hàm này là sync (chỉ xử lý chuỗi), không cần await
             payload.offer_id = self.eneba_service.get_offer_id_by_url(payload.product_id)
+
             if not product_competition:
                 logging.warning(f"No competition data found for product: {payload.product_name}")
                 return PayloadResult(status=0, payload=payload, log_message="No competition data found.")
-            analysis_result = self.eneba_service.analyze_competition(payload, product_competition)
+
+            # Thêm `await`
+            analysis_result = await self.eneba_service.analyze_competition(payload, product_competition)
+
             payload.target_price = analysis_result.competitive_price
+
+            # Hàm này là sync (logic), không cần await
             edited_price = self._calc_final_price(payload, analysis_result.competitive_price)
+
             if payload.get_min_price_value() is not None and edited_price < payload.get_min_price_value():
                 logging.info(
                     f"Final price ({edited_price:.3f}) is below min_price ({payload.get_min_price_value():.3f}), not updating.")
@@ -216,10 +235,14 @@ class Processor:
                 final_price=None
             )
 
-    def do_payload(self, payload: Payload):
-        payload_result = self.process_single_payload(payload)
+    # Chuyển sang `async def` vì nó gọi `process_single_payload`
+    async def do_payload(self, payload: Payload):
+        # Thêm `await`
+        payload_result = await self.process_single_payload(payload)
+
         if payload_result.status == 1:
             # TODO: Implement the logic to update the product price in the database or API
+            # Nếu logic này cũng là I/O (ví dụ: gọi service.update_price), nó cũng cần `await`
             logging.info(
                 f"Successfully processed payload for {payload.product_name}. Final price: {payload_result.final_price.price:.3f}")
             log_data = {
@@ -230,6 +253,7 @@ class Processor:
             logging.error(f"Failed to process payload for {payload.product_name}. Error: {payload_result.log_message}")
 
 
+# Hàm này là logic thuần túy, không cần async
 def _analysis_log_string(
         payload: Payload,
         analysis_result: AnalysisResult = None,
@@ -272,6 +296,7 @@ def _analysis_log_string(
     return "".join(log_parts)
 
 
+# Hàm này là logic thuần túy, không cần async
 def get_log_string(
         mode: str,
         payload: Payload,

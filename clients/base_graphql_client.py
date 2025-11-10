@@ -1,11 +1,10 @@
-# base_graphql_client.py
 import json
 import logging
 import re
 from typing import Any, Dict, Optional
 
 import httpx
-from tenacity import stop_after_delay, retry, wait_fixed, retry_if_exception, RetryCallState
+from tenacity import stop_after_delay, retry, retry_if_exception, RetryCallState
 
 from clients.exceptions import GraphQLError, GraphQLClientError
 
@@ -39,21 +38,22 @@ def _is_rate_limit_error(exception: BaseException) -> bool:
 
 class BaseGraphQLClient:
 
-    def __init__(self, graphql_url: str, auth_handler: Optional[Any] = None):
+    def __init__(self, graphql_url: str, client: httpx.AsyncClient, auth_handler: Optional[Any] = None):
         self.logger = logging.getLogger(self.__class__.__name__)
         if not graphql_url:
             raise ValueError("GraphQL URL is required.")
 
         self.graphql_url = graphql_url
         self.auth_handler = auth_handler
-        self._client = httpx.Client()
+
+        self._client = client
 
     @retry(
         stop=stop_after_delay(60),
         retry=retry_if_exception(_is_rate_limit_error),
         wait=_get_retry_after_seconds
     )
-    def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def execute(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         headers = {"Content-Type": "application/json"}
         headers.update({"X-Proxy-Secret": "embeiuquadi"})
         if self.auth_handler:
@@ -64,7 +64,7 @@ class BaseGraphQLClient:
 
         try:
             self.logger.debug("Executing GraphQL query...")
-            response = self._client.post(self.graphql_url, json=payload, headers=headers, timeout=30)
+            response = await self._client.post(self.graphql_url, json=payload, headers=headers, timeout=30)
             response.raise_for_status()
 
             response_json = response.json()
@@ -85,14 +85,16 @@ class BaseGraphQLClient:
             self.logger.error(f"A network error occurred: {e}")
             raise GraphQLClientError("Network Error") from e
 
-    def close(self):
-        self.logger.info("Closing client and auth handler.")
-        self._client.close()
+    async def close(self):
+        self.logger.info("Closing auth handler (client is managed externally).")
         if self.auth_handler and hasattr(self.auth_handler, 'close'):
-            self.auth_handler.close()
+            if hasattr(self.auth_handler, 'aclose'):
+                await self.auth_handler.aclose()
+            else:
+                self.auth_handler.close()
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()

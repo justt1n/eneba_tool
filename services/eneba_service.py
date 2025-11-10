@@ -13,8 +13,8 @@ class EnebaService:
     def __init__(self, eneba_client: EnebaClient):
         self._client = eneba_client
 
-    def get_product_id_by_slug(self, slugs: str) -> UUID:
-        res = self._client.get_product_by_slug(slugs)
+    async def get_product_id_by_slug(self, slugs: str) -> UUID:
+        res = await self._client.get_product_by_slug(slugs)
         try:
             response_data = res.data.s_products.edges
             if not response_data or len(response_data) == 0:
@@ -23,8 +23,8 @@ class EnebaService:
         except AttributeError as e:
             raise ValueError(f"Invalid response structure: {e}") from e
 
-    def get_competition_by_product_id(self, product_id: UUID) -> List[CompetitionEdge]:
-        res = self._client.get_competition_by_product_id(product_id)
+    async def get_competition_by_product_id(self, product_id: UUID) -> List[CompetitionEdge]:
+        res = await self._client.get_competition_by_product_id(product_id)
         try:
             response_data = res.data.s_competition
             if not response_data or len(response_data) == 0:
@@ -33,12 +33,12 @@ class EnebaService:
         except AttributeError as e:
             raise ValueError(f"Invalid response structure: {e}") from e
 
-    def get_competition_by_slug(self, slug: str) -> List[CompetitionEdge]:
-        product_id = self.get_product_id_by_slug(slug)
+    async def get_competition_by_slug(self, slug: str) -> List[CompetitionEdge]:
+        product_id = await self.get_product_id_by_slug(slug)
         if not product_id:
             raise ValueError(f"Product ID not found for slug: {slug}")
 
-        products = self.get_competition_by_product_id(product_id)
+        products = await self.get_competition_by_product_id(product_id)
         if not products:
             raise ValueError(f"No competition data found for product ID: {product_id}")
 
@@ -51,7 +51,7 @@ class EnebaService:
 
         return filtered_and_adjusted_products
 
-    def _filter_products(self, payload: Payload, products: List[CompetitionEdge]) -> List[CompetitionNode]:
+    async def _filter_products(self, payload: Payload, products: List[CompetitionEdge]) -> List[CompetitionNode]:
         filtered_products = []
         for product in products:
             if product.node.merchant_name not in payload.fetched_black_list and product.node.price.amount > 0:
@@ -64,17 +64,19 @@ class EnebaService:
         for product in filtered_products:
             if tmp_i == 3:
                 break
-            price_obj = self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
+            # Thêm await
+            price_obj = await self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
             product.node.price.price_no_commission = price_obj.get_price_without_commission()
             product.node.price.old_price_with_commission = product.node.price.amount
             product.node.price.amount = price_obj.get_price_without_commission()
             tmp_i += 1
         return filtered_products
 
-    def analyze_competition(self, payload: Payload, products: List[CompetitionEdge]) -> AnalysisResult:
+    async def analyze_competition(self, payload: Payload, products: List[CompetitionEdge]) -> AnalysisResult:
         top_sellers_for_log = products[:4]
         sellers_below_min = []
-        filtered_products = self._filter_products(payload, products)
+        # Thêm await
+        filtered_products = await self._filter_products(payload, products)
         competitive_price = payload.fetched_max_price
         competitor_name = "Not found"
         if len(filtered_products) > 0:
@@ -93,9 +95,9 @@ class EnebaService:
             sellers_below_min=sellers_below_min
         )
 
-    def calculate_commission_price(self, prodId: str, amount: float, currency: str = "EUR") -> CommissionPrice:
+    async def calculate_commission_price(self, prodId: str, amount: float, currency: str = "EUR") -> CommissionPrice:
         price = int(amount * 100)
-        res = self._client.calculate_price(product_id=prodId, amount=price, currency=currency)
+        res = await self._client.calculate_price(product_id=prodId, amount=price, currency=currency)
         commission_price = CommissionPrice(
             price_without_commission=res.data.s_calculate_price.price_without_commission.amount,
             price_with_commission=res.data.s_calculate_price.price_with_commission.amount,
@@ -105,12 +107,12 @@ class EnebaService:
         except AttributeError as e:
             raise ValueError(f"Invalid response structure: {e}") from e
 
-    def update_product_price(self, offer_id: str, new_price: float) -> bool:
+    async def update_product_price(self, offer_id: str, new_price: float) -> bool:
         price = int(new_price * 100)
-        res = self._client.update_auction(auction_id=offer_id, amount=price)
+        res = await self._client.update_auction(auction_id=offer_id, amount=price)
         return res.data.s_update_auction.success
 
-    def check_next_free_in_minutes(self, payload: Payload) -> tuple[Payload, int, int] | tuple[int, int]:
+    async def check_next_free_in_minutes(self, payload: Payload) -> tuple[Payload, int, int] | tuple[int, int]:
         """
         Checks the time in minutes until the next free quota refresh.
 
@@ -131,7 +133,7 @@ class EnebaService:
         except ValueError:
             raise ValueError(f"'{prd_id}' is not a valid UUID format.")
 
-        res = self._client.get_stock_info(stock_uuid)
+        res = await self._client.get_stock_info(stock_uuid)
 
         try:
             quota_info = res.data.s_stock.edges[0].node.price_update_quota
@@ -151,6 +153,7 @@ class EnebaService:
             # If it has a value, convert from seconds to minutes (rounding down)
             return payload, quota_info.next_free_in // 60, 0
 
+    # Hàm này không làm I/O, chỉ xử lý chuỗi, nên giữ nguyên là sync (đồng bộ)
     def get_offer_id_by_url(self, url: str) -> str:
         pattern = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
         match = re.search(pattern, url)
@@ -159,11 +162,11 @@ class EnebaService:
         else:
             raise ValueError(f"Invalid URL format, cannot extract offer ID: {url}")
 
-    def close(self):
-        self._client.close()
+    async def close(self):
+        await self._client.close()
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
