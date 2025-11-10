@@ -28,7 +28,7 @@ class SProductsGraphQLResponse(BaseModel):
 
 
 class Price(BaseModel):
-    amount: int
+    amount: float
     currency: str
     price_no_commission: Optional[float] = None
     old_price_with_commission: Optional[float] = None

@@ -52,19 +52,27 @@ class Processor:
             if payload.fetched_max_price is not None and price == payload.fetched_max_price:
                 is_max_price = True
 
-            # Chỉ trừ d_price nếu giá hiện tại KHÔNG PHẢI là giá max
-            if not is_max_price:
+            # Kiểm tra xem giá đầu vào có phải là giá min hay không
+            is_min_price = False
+            if payload.fetched_min_price is not None and price == payload.fetched_min_price:
+                is_min_price = True
+
+            # Chỉ trừ d_price nếu giá hiện tại KHÔNG PHẢI là giá max VÀ KHÔNG PHẢI là giá min
+            if not is_max_price and not is_min_price:
                 min_adj = min(payload.min_price_adjustment, payload.max_price_adjustment)
                 max_adj = max(payload.min_price_adjustment, payload.max_price_adjustment)
 
                 d_price = random.uniform(min_adj, max_adj)
                 price = price - d_price
+                logging.info(f"Applied random adjustment of -{d_price:.3f}. New price: {price:.3f}")
             else:
                 # Ghi log rằng chúng ta đã bỏ qua việc điều chỉnh ngẫu nhiên
-                logging.info(f"Price ({price:.3f}) matches fetched_max_price, skipping random adjustment.")
+                logging.info(f"Price ({price:.3f}) matches a boundary (min or max), skipping random adjustment.")
 
         # --- KẾT THÚC SỬA ĐỔI ---
 
+        # Các bước kẹp giá (clamping) này vẫn RẤT CẦN THIẾT
+        # để đảm bảo giá sau khi trừ d_price không bị lọt ra ngoài khoảng min/max
         if payload.fetched_min_price is not None:
             price = max(price, payload.fetched_min_price)
 
@@ -170,6 +178,21 @@ class Processor:
                     final_price=None,
                     log_message=log_str
                 )
+            elif payload.current_price == edited_price:
+                logging.info("Current price is equal to edited price.")
+                log_str = get_log_string(
+                    mode="equal",
+                    payload=payload,
+                    final_price=edited_price,
+                    analysis_result=analysis_result,
+                    filtered_products=product_competition
+                )
+                return PayloadResult(
+                    status=0,
+                    payload=payload,
+                    final_price=None,
+                    log_message=log_str
+                )
             log_str = get_log_string(
                 mode="compare",
                 payload=payload,
@@ -239,7 +262,12 @@ def _analysis_log_string(
     log_parts.append("Top 4 sản phẩm:\n")
     sorted_product = sorted(filtered_products, key=lambda item: item.node.price.amount, reverse=False)
     for product in sorted_product[:4]:
-        log_parts.append(f"- {product.node.merchant_name}: {product.node.price.amount:.6f}\n")
+        main_price = product.node.price.amount
+        comm_price = product.node.price.price_no_commission
+        comm_str = ""
+        if comm_price is not None and comm_price != main_price:
+            comm_str = f" (no comm: {comm_price:.6f})"
+        log_parts.append(f"- {product.node.merchant_name}: {main_price:.6f}{comm_str}\n")
 
     return "".join(log_parts)
 
@@ -283,6 +311,13 @@ def get_log_string(
         log_parts = [
             timestamp,
             f"Giá đang thấp hơn đối thủ hoặc giá max, không cập nhật.\n"
+        ]
+        if analysis_result:
+            log_parts.append(_analysis_log_string(payload, analysis_result, filtered_products))
+    elif mode == "equal":
+        log_parts = [
+            timestamp,
+            f"Giá hiện tại không cần chỉnh, không cập nhật\n"
         ]
         if analysis_result:
             log_parts.append(_analysis_log_string(payload, analysis_result, filtered_products))
