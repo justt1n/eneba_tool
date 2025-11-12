@@ -229,7 +229,7 @@ class Processor:
         except Exception as e:
             logging.error(f"Error processing payload {payload.product_name}: {e}")
             return PayloadResult(
-                status=1,
+                status=0,
                 payload=payload,
                 log_message=f"Error processing payload: {str(e)}",
                 final_price=None
