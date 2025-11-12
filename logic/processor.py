@@ -145,7 +145,11 @@ class Processor:
 
             # Thêm `await`
             analysis_result = await self.eneba_service.analyze_competition(payload, product_competition)
-
+            if not analysis_result.top_sellers_for_log:
+                product_competition = await self.eneba_service.enrich_products_with_commission(payload,
+                                                                                               product_competition)
+            else:
+                product_competition = analysis_result.top_sellers_for_log
             payload.target_price = analysis_result.competitive_price
 
             # Hàm này là sync (logic), không cần await
@@ -284,14 +288,10 @@ def _analysis_log_string(
         log_parts.append(f"Seller giá nhỏ hơn min_price):\n {sellers_info}")
 
     log_parts.append("Top 4 sản phẩm:\n")
-    sorted_product = sorted(filtered_products, key=lambda item: item.node.price.amount, reverse=False)
-    for product in sorted_product[:4]:
-        main_price = product.node.price.amount
-        comm_price = product.node.price.price_no_commission
-        comm_str = ""
-        if comm_price is not None and comm_price != main_price:
-            comm_str = f" (no comm: {comm_price:.6f})"
-        log_parts.append(f"- {product.node.merchant_name}: {main_price:.6f}{comm_str}\n")
+    top_sellers_info =  "; ".join([
+            f"{s.node.merchant_name} = {s.node.price.price_no_commission} ({s.node.price.old_price_with_commission:.6f})\n"
+            for s in filtered_products[:4]])
+    log_parts.append(top_sellers_info)
 
     return "".join(log_parts)
 

@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 
 from clients.impl.eneba_client import EnebaClient
-from models.eneba_models import CompetitionEdge, CompetitionNode
+from models.eneba_models import CompetitionEdge
 from models.logic_models import AnalysisResult, CommissionPrice
 from models.sheet_models import Payload
 
@@ -51,7 +51,8 @@ class EnebaService:
 
         return filtered_and_adjusted_products
 
-    async def _filter_products(self, payload: Payload, products: List[CompetitionEdge]) -> List[CompetitionNode]:
+    def _filter_products_by_criteria(self, payload: Payload, products: List[CompetitionEdge]) -> List[CompetitionEdge]:
+        """Filter products based on blacklist and price range criteria."""
         filtered_products = []
         for product in products:
             if product.node.merchant_name not in payload.fetched_black_list and product.node.price.amount > 0:
@@ -60,22 +61,26 @@ class EnebaService:
                 if payload.fetched_max_price is not None and product.node.price.amount > payload.fetched_max_price:
                     continue
                 filtered_products.append(product)
-        tmp_i = 0
-        for product in filtered_products:
-            if tmp_i == 3:
-                break
-            # Thêm await
+        return filtered_products
+
+    async def enrich_products_with_commission(self, payload: Payload, products: List[CompetitionEdge], limit: int = 4) -> List[CompetitionEdge]:
+        """Enrich first N products with commission price calculations."""
+        for i, product in enumerate(products[:limit]):
             price_obj = await self.calculate_commission_price(payload.prod_uuid, product.node.price.amount)
             product.node.price.price_no_commission = price_obj.get_price_without_commission()
             product.node.price.old_price_with_commission = product.node.price.amount
             product.node.price.amount = price_obj.get_price_without_commission()
-            tmp_i += 1
+        return products
+
+    async def _filter_products(self, payload: Payload, products: List[CompetitionEdge]) -> List[CompetitionEdge]:
+        filtered_products = self._filter_products_by_criteria(payload, products)
         return filtered_products
 
     async def analyze_competition(self, payload: Payload, products: List[CompetitionEdge]) -> AnalysisResult:
         top_sellers_for_log = products[:4]
         sellers_below_min = []
         # Thêm await
+        top_sellers_for_log = await self.enrich_products_with_commission(payload, top_sellers_for_log)
         filtered_products = await self._filter_products(payload, products)
         competitive_price = payload.fetched_max_price
         competitor_name = "Not found"

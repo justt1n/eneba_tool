@@ -61,25 +61,25 @@ async def process_payload_wrapper(
                     f"Giá mới: {result.final_price.price:.3f}. Còn {_quota_count} lượt.")
                 log_data = {
                     'note': f"Quote remain: {_quota_count} times\n" + result.log_message,
-                    'last_update': datetime.now().strftime('%Y-m-%d %H:%M:%S')
+                    'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             else:
                 logging.warning(f"Không đủ quota cho hàng {payload.row_index}. Chờ {_quota_remain} phút.")
                 log_data = {
                     'note': f"Quota = 0. Next free in: {_quota_remain}\n{result.log_message}",
-                    'last_update': datetime.now().strftime('%Y-m-%d %H:%M:%S')
+                    'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
         elif result.status == 2:
             logging.info(f"Giá hiện tại thấp hơn, không cập nhật hàng {payload.row_index}. Còn {_quota_count} lượt.")
             log_data = {
                 'note': f"Quote remain: {_quota_count} times\n" + result.log_message,
-                'last_update': datetime.now().strftime('%Y-m-%d %H:%M:%S')
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         else:
             logging.warning(f"Hàng {payload.row_index} không đủ điều kiện xử lý. Log: {result.log_message}")
             log_data = {
                 'note': result.log_message,
-                'last_update': datetime.now().strftime('%Y-m-%d %H:%M:%S')
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
 
         if log_data:
