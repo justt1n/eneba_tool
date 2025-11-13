@@ -64,7 +64,8 @@ async def process_payload_wrapper(
                     'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             else:
-                logging.warning(f"Không đủ quota cho hàng {payload.row_index}. Chờ {_quota_remain} phút.")
+                result.log_message = f"Không đủ quota cho hàng {payload.row_index}. Chờ {_quota_remain} phút."
+                logging.warning(result.log_message)
                 log_data = {
                     'note': f"Quota = 0. Next free in: {_quota_remain}\n{result.log_message}",
                     'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
