@@ -120,6 +120,7 @@ class Processor:
                     payload=payload,
                     final_price=final_price
                 )
+                payload.offer_id = self.eneba_service.get_offer_id_by_url(payload.product_id)
                 return PayloadResult(
                     status=1,
                     payload=payload,
