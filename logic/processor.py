@@ -47,10 +47,11 @@ class Processor:
         min_price_adj = payload.min_price_adjustment
         if payload.quota_count is not None and 0 <= payload.quota_count <= 5:
             min_price_adj = payload.min_price_adjustment2
+            price = price - min_price_adj
             logging.info("Using min_price_adjustment2 due to low quota. (quota<=5")
         # --- SỬA ĐỔI ---
         # Kiểm tra xem có cấu hình điều chỉnh giá hay không
-        if min_price_adj is not None and payload.max_price_adjustment is not None:
+        elif min_price_adj is not None and payload.max_price_adjustment is not None:
 
             # Kiểm tra xem giá đầu vào có phải là giá max hay không
             is_max_price = False
