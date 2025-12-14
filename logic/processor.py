@@ -15,44 +15,25 @@ class Processor:
         self.eneba_service = eneba_service
 
     # Hàm này là logic thuần túy, không cần async
-    def _calc_final_price_old(self, payload: Payload, price: float) -> float:
-        if price is None:
-            price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
-            logging.info(f"No product match, using fetched max price: {price:.3f}")
-        if payload.min_price_adjustment is None or payload.max_price_adjustment is None:
-            pass
-        else:
-            min_adj = min(payload.min_price_adjustment, payload.max_price_adjustment)
-            max_adj = max(payload.min_price_adjustment, payload.max_price_adjustment)
-
-            d_price = random.uniform(min_adj, max_adj)
-            price = price - d_price
-
-        if payload.fetched_min_price is not None:
-            price = max(price, payload.fetched_min_price)
-
-        if payload.fetched_max_price is not None:
-            price = min(price, payload.fetched_max_price)
-
-        if payload.price_rounding is not None:
-            price = round_up_to_n_decimals(price, payload.price_rounding)
-
-        return price
-
-    # Hàm này là logic thuần túy, không cần async
     def _calc_final_price(self, payload: Payload, price: float) -> float:
         if price is None:
             price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
             logging.info(f"No product match, using fetched max price: {price:.3f}")
         min_price_adj = payload.min_price_adjustment
+        # Nếu trong khoảng 1 <= quota <= 5 thì dùng min_price_adjustment2
         if payload.quota_count is not None and 0 <= payload.quota_count <= 5:
             min_price_adj = payload.min_price_adjustment2
             price = price - min_price_adj
-            logging.info("Using min_price_adjustment2 due to low quota. (quota<=5")
-        # --- SỬA ĐỔI ---
-        # Kiểm tra xem có cấu hình điều chỉnh giá hay không
+            logging.info(f"Using min_price_adjustment2 due to low quota ({payload.quota_count}). (quota<=5")
+        # Nếu là lần cuối (quota = 1) thì lấy min price trong sheet
+        elif payload.quota_count is not None and payload.quota_count == 1:
+            if payload.get_min_price_value() is not None:
+                price = payload.get_min_price_value()
+                logging.info(f"Using min_price: {price} due to last quota. (quota=1)")
+            else:
+                logging.info(f"min_price is None, cannot use it for last quota. (quota=1)")
+        # Nếu không thì random trong khoảng min max
         elif min_price_adj is not None and payload.max_price_adjustment is not None:
-
             # Kiểm tra xem giá đầu vào có phải là giá max hay không
             is_max_price = False
             if payload.fetched_max_price is not None and price == payload.fetched_max_price:
