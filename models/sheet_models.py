@@ -88,22 +88,23 @@ class Payload(BaseGSheetModel):
     include_keyword: Annotated[Optional[str], "J"] = None
     filter_options: Annotated[Optional[str], "K"] = None
     min_price_adjustment: Annotated[Optional[float], "L"] = None
-    max_price_adjustment: Annotated[Optional[float], "M"] = None
-    price_rounding: Annotated[Optional[int], "N"] = None
-    idsheet_min: Annotated[Optional[str], "O"] = None
-    sheet_min: Annotated[Optional[str], "P"] = None
-    cell_min: Annotated[Optional[str], "Q"] = None
-    idsheet_max: Annotated[Optional[str], "R"] = None
-    sheet_max: Annotated[Optional[str], "S"] = None
-    cell_max: Annotated[Optional[str], "T"] = None
-    idsheet_stock: Annotated[Optional[str], "U"] = None
-    sheet_stock: Annotated[Optional[str], "V"] = None
-    cell_stock: Annotated[Optional[str], "W"] = None
-    idsheet_blacklist: Annotated[Optional[str], "X"] = None
-    sheet_blacklist: Annotated[Optional[str], "Y"] = None
-    cell_blacklist: Annotated[Optional[str], "Z"] = None
-    relax: Annotated[Optional[str], "AA"] = None
-    min_price: Annotated[Optional[str], "AB"] = None
+    min_price_adjustment2: Annotated[Optional[float], "M"] = None
+    max_price_adjustment: Annotated[Optional[float], "N"] = None
+    price_rounding: Annotated[Optional[int], "O"] = None
+    idsheet_min: Annotated[Optional[str], "P"] = None
+    sheet_min: Annotated[Optional[str], "Q"] = None
+    cell_min: Annotated[Optional[str], "R"] = None
+    idsheet_max: Annotated[Optional[str], "S"] = None
+    sheet_max: Annotated[Optional[str], "T"] = None
+    cell_max: Annotated[Optional[str], "U"] = None
+    idsheet_stock: Annotated[Optional[str], "V"] = None
+    sheet_stock: Annotated[Optional[str], "Ư"] = None
+    cell_stock: Annotated[Optional[str], "X"] = None
+    idsheet_blacklist: Annotated[Optional[str], "Y"] = None
+    sheet_blacklist: Annotated[Optional[str], "Z"] = None
+    cell_blacklist: Annotated[Optional[str], "AA"] = None
+    relax: Annotated[Optional[str], "AB"] = None
+    min_price: Annotated[Optional[str], "AC"] = None
 
     fetched_min_price: Optional[float] = None
     fetched_max_price: Optional[float] = None
@@ -113,6 +114,8 @@ class Payload(BaseGSheetModel):
     offer_id: Optional[str] = None
     current_price: Optional[float] = None
     target_price: Optional[float] = None
+
+    quota_count: Optional[int] = None
 
     # convert min_price to float
     def get_min_price_value(self) -> Optional[float]:

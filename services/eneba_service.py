@@ -145,6 +145,7 @@ class EnebaService:
             _price = res.data.s_stock.edges[0].node.price.amount
             _commission = res.data.s_stock.edges[0].node.commission.rate.amount if res.data.s_stock.edges[0].node.commission.rate.amount else 0
             payload.current_price = _price - _commission
+            payload.quota_count = quota_info.quota
             if payload.current_price > 0:
                 payload.current_price = payload.current_price / 100
         except (IndexError, AttributeError):

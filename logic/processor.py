@@ -44,10 +44,12 @@ class Processor:
         if price is None:
             price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
             logging.info(f"No product match, using fetched max price: {price:.3f}")
-
+        min_price_adj = payload.min_price_adjustment
+        if payload.quota_count is not None and 0 <= payload.quota_count <= 5:
+            min_price_adj = payload.min_price_adjustment2
         # --- SỬA ĐỔI ---
         # Kiểm tra xem có cấu hình điều chỉnh giá hay không
-        if payload.min_price_adjustment is not None and payload.max_price_adjustment is not None:
+        if min_price_adj is not None and payload.max_price_adjustment is not None:
 
             # Kiểm tra xem giá đầu vào có phải là giá max hay không
             is_max_price = False
@@ -61,8 +63,8 @@ class Processor:
 
             # Chỉ trừ d_price nếu giá hiện tại KHÔNG PHẢI là giá max VÀ KHÔNG PHẢI là giá min
             if not is_max_price and not is_min_price:
-                min_adj = min(payload.min_price_adjustment, payload.max_price_adjustment)
-                max_adj = max(payload.min_price_adjustment, payload.max_price_adjustment)
+                min_adj = min(min_price_adj, payload.max_price_adjustment)
+                max_adj = max(min_price_adj, payload.max_price_adjustment)
 
                 d_price = random.uniform(min_adj, max_adj)
                 price = price - d_price
