@@ -173,6 +173,23 @@ class Processor:
                     log_message=log_str
                 )
             elif not payload.is_follow_price and payload.current_price <= payload.target_price and analysis_result.competitor_name != "Not found":
+                if payload.current_price < payload.get_min_price_value():
+                    logging.info("Current price is below min_price, updating to min_price.")
+                    log_str = get_log_string(
+                        mode="not_follow_but_below_min",
+                        payload=payload,
+                        final_price=edited_price,
+                        analysis_result=analysis_result,
+                        filtered_products=product_competition
+                    )
+                    return PayloadResult(
+                        status=1,
+                        payload=payload,
+                        final_price=CompareTarget(name=analysis_result.competitor_name, price=edited_price),
+                        competition=product_competition,
+                        log_message=log_str
+                    )
+
                 logging.info("Not follow the price, not updating.")
                 log_str = get_log_string(
                     mode="not_follow",
@@ -329,6 +346,13 @@ def get_log_string(
         log_parts = [
             timestamp,
             f"Giá hiện tại không cần chỉnh, không cập nhật\n"
+        ]
+        if analysis_result:
+            log_parts.append(_analysis_log_string(payload, analysis_result, filtered_products))
+    elif mode == "not_follow_but_below_min":
+        log_parts = [
+            timestamp,
+            f"Giá hiện tại đang nhỏ hơn min_price, cập nhật thành min_price {final_price:.3f}\n"
         ]
         if analysis_result:
             log_parts.append(_analysis_log_string(payload, analysis_result, filtered_products))
