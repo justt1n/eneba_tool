@@ -98,7 +98,7 @@ class Payload(BaseGSheetModel):
     sheet_max: Annotated[Optional[str], "T"] = None
     cell_max: Annotated[Optional[str], "U"] = None
     idsheet_stock: Annotated[Optional[str], "V"] = None
-    sheet_stock: Annotated[Optional[str], "Ư"] = None
+    sheet_stock: Annotated[Optional[str], "W"] = None
     cell_stock: Annotated[Optional[str], "X"] = None
     idsheet_blacklist: Annotated[Optional[str], "Y"] = None
     sheet_blacklist: Annotated[Optional[str], "Z"] = None

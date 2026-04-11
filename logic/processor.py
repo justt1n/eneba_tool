@@ -9,57 +9,66 @@ from models.sheet_models import Payload
 from services.eneba_service import EnebaService  # Đây là EnebaService phiên bản async
 from utils.utils import round_up_to_n_decimals
 
+# Biến bật/tắt logic gây nhiễu giá (Random Adjustment)
+# Mặc định = False để luôn đạt giá tốt nhất (giảm cố định theo min_price_adjustment)
+ENABLE_NOISE = False
+
 
 class Processor:
     def __init__(self, eneba_service: EnebaService):
         self.eneba_service = eneba_service
+
+    def _get_adjustment_amount(self, payload: Payload) -> float:
+        """Tính toán mức giảm giá dựa trên cấu hình nhiễu."""
+        min_adj = payload.min_price_adjustment
+        max_adj = payload.max_price_adjustment
+
+        if not ENABLE_NOISE or max_adj is None or min_adj is None:
+            return min_adj if min_adj is not None else 0.0
+
+        # Logic gây nhiễu giá ngẫu nhiên
+        _min = min(min_adj, max_adj)
+        _max = max(min_adj, max_adj)
+        return random.uniform(_min, _max)
 
     # Hàm này là logic thuần túy, không cần async
     def _calc_final_price(self, payload: Payload, price: float) -> float:
         if price is None:
             price = round_up_to_n_decimals(payload.fetched_max_price, payload.price_rounding)
             logging.info(f"No product match, using fetched max price: {price:.3f}")
-        min_price_adj = payload.min_price_adjustment
-        # Nếu trong khoảng 1 <= quota <= 5 thì dùng min_price_adjustment2
+
+        # 1. Ưu tiên xử lý Quota thấp
         if payload.quota_count is not None and 0 <= payload.quota_count <= 5:
             min_price_adj = payload.min_price_adjustment2
             price = price - min_price_adj
-            logging.info(f"Using min_price_adjustment2 due to low quota ({payload.quota_count}). (quota<=5")
-        # Nếu là lần cuối (quota = 1) thì lấy min price trong sheet
+            logging.info(f"Using min_price_adjustment2 due to low quota ({payload.quota_count}). (quota<=5)")
         elif payload.quota_count is not None and payload.quota_count == 1:
             if payload.get_min_price_value() is not None:
                 price = payload.get_min_price_value()
                 logging.info(f"Using min_price: {price} due to last quota. (quota=1)")
             else:
                 logging.info(f"min_price is None, cannot use it for last quota. (quota=1)")
-        # Nếu không thì random trong khoảng min max
-        elif min_price_adj is not None and payload.max_price_adjustment is not None:
-            # Kiểm tra xem giá đầu vào có phải là giá max hay không
-            is_max_price = False
-            if payload.fetched_max_price is not None and price == payload.fetched_max_price:
-                is_max_price = True
 
-            # Kiểm tra xem giá đầu vào có phải là giá min hay không
-            is_min_price = False
-            if payload.fetched_min_price is not None and price == payload.fetched_min_price:
-                is_min_price = True
+        # 2. Xử lý giảm giá thông thường (có hoặc không có nhiễu)
+        else:
+            adjustment = self._get_adjustment_amount(payload)
+            if adjustment > 0:
+                # Nếu bật nhiễu, kiểm tra biên để skip
+                if ENABLE_NOISE:
+                    is_at_boundary = False
+                    if payload.fetched_max_price is not None and price == payload.fetched_max_price:
+                        is_at_boundary = True
+                    if payload.fetched_min_price is not None and price == payload.fetched_min_price:
+                        is_at_boundary = True
 
-            # Chỉ trừ d_price nếu giá hiện tại KHÔNG PHẢI là giá max VÀ KHÔNG PHẢI là giá min
-            if not is_max_price and not is_min_price:
-                min_adj = min(min_price_adj, payload.max_price_adjustment)
-                max_adj = max(min_price_adj, payload.max_price_adjustment)
+                    if is_at_boundary:
+                        logging.info(f"Price ({price:.3f}) matches a boundary, skipping random adjustment (ENABLE_NOISE=True).")
+                        return price
 
-                d_price = random.uniform(min_adj, max_adj)
-                price = price - d_price
-                logging.info(f"Applied random adjustment of -{d_price:.3f}. New price: {price:.3f}")
-            else:
-                # Ghi log rằng chúng ta đã bỏ qua việc điều chỉnh ngẫu nhiên
-                logging.info(f"Price ({price:.3f}) matches a boundary (min or max), skipping random adjustment.")
-
-        # --- KẾT THÚC SỬA ĐỔI ---
+                price = price - adjustment
+                logging.info(f"Applied adjustment of -{adjustment:.3f} (Noise: {ENABLE_NOISE}). New price: {price:.3f}")
 
         # Các bước kẹp giá (clamping) này vẫn RẤT CẦN THIẾT
-        # để đảm bảo giá sau khi trừ d_price không bị lọt ra ngoài khoảng min/max
         if payload.fetched_min_price is not None:
             price = max(price, payload.fetched_min_price)
 
@@ -172,7 +181,8 @@ class Processor:
                     final_price=None,
                     log_message=log_str
                 )
-            elif not payload.is_follow_price and payload.current_price <= payload.target_price and analysis_result.competitor_name != "Not found":
+            # SỬA: Đổi từ <= thành < để xử lý trường hợp giá ngang ngang (bằng đối thủ)
+            elif not payload.is_follow_price and payload.current_price < payload.target_price and analysis_result.competitor_name != "Not found":
                 if payload.current_price < payload.get_min_price_value():
                     logging.info("Current price is below min_price, updating to min_price.")
                     log_str = get_log_string(

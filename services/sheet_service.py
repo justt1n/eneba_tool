@@ -60,7 +60,8 @@ class SheetService:
         self.client = client
 
     def get_payloads_to_process(self) -> List[Payload]:
-        all_rows = self.client.get_data(settings.MAIN_SHEET_ID, settings.MAIN_SHEET_NAME)
+        range_full_columns = f"'{settings.MAIN_SHEET_NAME}'!A1:ZZ3000"
+        all_rows = self.client.get_data(settings.MAIN_SHEET_ID, range_full_columns)
         if not all_rows:
             logging.warning("No data found in the main sheet.")
             return []
