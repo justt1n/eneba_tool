@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 from typing import List
 
+from clients.exceptions import GraphQLClientError
 from models.eneba_models import CompetitionEdge
 from models.logic_models import PayloadResult, CompareTarget, AnalysisResult
 from models.sheet_models import Payload
@@ -104,7 +105,7 @@ class Processor:
     # Chuyển sang `async def` vì nó gọi service
     async def process_single_payload(self, payload: Payload) -> PayloadResult:
         if not self._validate_payload(payload):
-            return PayloadResult(payload=payload, log_message="Payload validation failed.")
+            return PayloadResult(status=0, payload=payload, log_message="Payload validation failed.")
         try:
             if not payload.is_compare_enabled:
                 logging.info(f"Skipping comparison for product: {payload.product_name}")
@@ -242,6 +243,14 @@ class Processor:
                 competition=product_competition,
                 final_price=CompareTarget(name=analysis_result.competitor_name, price=edited_price),
                 log_message=log_str
+            )
+        except GraphQLClientError as e:
+            logging.error(f"Error processing payload {payload.product_name}: {e}")
+            return PayloadResult(
+                status=0,
+                payload=payload,
+                log_message=f"Eneba API error while processing payload: {e}",
+                final_price=None
             )
         except Exception as e:
             logging.error(f"Error processing payload {payload.product_name}: {e}")

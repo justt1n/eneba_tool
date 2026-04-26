@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 
 
 class APIError(Exception):
@@ -11,7 +11,20 @@ class QueueLimitExceededError(APIError):
 
 
 class GraphQLClientError(Exception):
-    pass
+    def __init__(
+            self,
+            message: str,
+            *,
+            status_code: Optional[int] = None,
+            url: Optional[str] = None,
+            operation: Optional[str] = None,
+            response_body: Optional[str] = None
+    ):
+        self.status_code = status_code
+        self.url = url
+        self.operation = operation
+        self.response_body = response_body
+        super().__init__(message)
 
 
 class GraphQLError(GraphQLClientError):

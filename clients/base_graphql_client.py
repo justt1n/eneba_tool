@@ -9,6 +9,20 @@ from tenacity import stop_after_delay, retry, retry_if_exception, RetryCallState
 from clients.exceptions import GraphQLError, GraphQLClientError
 
 
+def _get_graphql_operation_name(query: str) -> str:
+    match = re.search(r'\b(query|mutation)\s+([A-Za-z_][A-Za-z0-9_]*)', query or '')
+    if match:
+        return match.group(2)
+    return "anonymous"
+
+
+def _truncate_response_body(body: str, limit: int = 1000) -> str:
+    body = (body or "").strip()
+    if len(body) <= limit:
+        return body
+    return f"{body[:limit]}... (truncated, {len(body)} chars total)"
+
+
 def _get_retry_after_seconds(retry_state: "RetryCallState") -> int:
     exception = retry_state.outcome.exception()
     if exception and isinstance(exception, GraphQLError):
@@ -22,7 +36,12 @@ def _get_retry_after_seconds(retry_state: "RetryCallState") -> int:
                 return seconds
         except (IndexError, KeyError, TypeError):
             pass
-    logging.warning("Rate limit hit. Retrying after 5 seconds (default)...")
+    if exception and isinstance(exception, GraphQLClientError):
+        logging.warning(
+            f"Transient Eneba GraphQL error. Retrying after 5 seconds: {exception}"
+        )
+    else:
+        logging.warning("Rate limit hit. Retrying after 5 seconds (default)...")
     return 5
 
 
@@ -33,6 +52,15 @@ def _is_rate_limit_error(exception: BaseException) -> bool:
             return 'Too Many Requests' in error_message
         except (IndexError, KeyError, TypeError):
             return False
+    if isinstance(exception, GraphQLClientError):
+        if exception.status_code in {429, 502, 503, 504}:
+            return True
+        response_body = (exception.response_body or "").lower()
+        return exception.status_code == 403 and (
+            "just a moment" in response_body
+            or "cloudflare" in response_body
+            or "cf-browser-verification" in response_body
+        )
     return False
 
 
@@ -61,9 +89,10 @@ class BaseGraphQLClient:
             headers.update(auth_headers)
 
         payload = {"query": query, "variables": variables or {}}
+        operation_name = _get_graphql_operation_name(query)
 
         try:
-            self.logger.debug("Executing GraphQL query...")
+            self.logger.debug(f"Executing GraphQL operation: {operation_name}")
             response = await self._client.post(self.graphql_url, json=payload, headers=headers, timeout=30)
             response.raise_for_status()
 
@@ -80,10 +109,37 @@ class BaseGraphQLClient:
                     raise GraphQLError(error_json["errors"])
             except json.JSONDecodeError:
                 pass
-            raise GraphQLClientError(f"HTTP Error: {e.response.status_code}") from e
+            safe_error_body = _truncate_response_body(error_body)
+            details = [
+                f"HTTP {e.response.status_code}",
+                f"operation={operation_name}",
+                f"url={e.request.url}",
+            ]
+            if safe_error_body:
+                details.append(f"response={safe_error_body}")
+
+            if e.response.status_code == 403:
+                details.append(
+                    "hint=Forbidden. Check Eneba credentials/token, X-Proxy-Secret, proxy allowlist, or account permissions."
+                )
+
+            message = "Eneba GraphQL request failed: " + " | ".join(details)
+            self.logger.error(message)
+            raise GraphQLClientError(
+                message,
+                status_code=e.response.status_code,
+                url=str(e.request.url),
+                operation=operation_name,
+                response_body=safe_error_body
+            ) from e
         except httpx.RequestError as e:
-            self.logger.error(f"A network error occurred: {e}")
-            raise GraphQLClientError("Network Error") from e
+            message = f"Eneba GraphQL network error: operation={operation_name} | url={e.request.url} | error={e}"
+            self.logger.error(message)
+            raise GraphQLClientError(
+                message,
+                url=str(e.request.url),
+                operation=operation_name
+            ) from e
 
     async def close(self):
         self.logger.info("Closing auth handler (client is managed externally).")
